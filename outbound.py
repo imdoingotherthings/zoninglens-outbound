@@ -66,8 +66,8 @@ def run_outbound_campaign():
         return print("\n⚠️ Missing data. Exiting.")
 
     for broker in leads:
-       status = broker.get('status', 'New').lower()
-        if status in ['dead', 'replied']:
+        status = broker.get('status', 'New').lower()
+        if status in ['dead', 'replied', 'sent']:
             continue
             
         contact_name = broker.get('contact_name', 'Broker').split(' ')[0]
