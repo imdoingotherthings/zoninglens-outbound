@@ -126,7 +126,7 @@ def run_outbound_campaign():
         
         if action == 'q': return print("🛑 Aborted.")
         elif action == 'y':
-            resend_payload = {"from": SENDER_EMAIL, "to": email, "subject": subject, "html": html_body}
+            resend_payload = {"from": SENDER_EMAIL, "to": email, "reply_to": "zoninglens@gmail.com", "subject": subject, "html": html_body}
             fire_req = requests.post("https://api.resend.com/emails", json=resend_payload, headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"})
             if fire_req.status_code == 200: print(f"✅ Fired successfully to {email}!\n")
             else: print(f"❌ Error: {fire_req.text}\n")
