@@ -10,6 +10,8 @@ API_URL = os.getenv("API_URL", "https://api.zoninglens.com")
 JWT_TOKEN = os.getenv("JWT_TOKEN")
 ADMIN_SECRET = os.getenv("ADMIN_SECRET")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+CF_CLIENT_ID = os.getenv("CF_CLIENT_ID")
+CF_CLIENT_SECRET = os.getenv("CF_CLIENT_SECRET")
 
 SENDER_EMAIL = "ZoningLens Intel <welcome@updates.zoninglens.com>"
 
@@ -45,13 +47,29 @@ def run_outbound_campaign():
     if parcels_res.status_code != 200: return print("❌ API Error (Parcels)")
     parcels = parcels_res.json()
 
-    leads_res = requests.get(f"{API_URL}/api/crm/leads", headers={"x-admin-key": ADMIN_SECRET})
+    leads_res = requests.get(
+        "https://zoningdash.qleapventures.com/api/leads", 
+        headers={
+            "CF-Access-Client-Id": CF_CLIENT_ID,
+            "CF-Access-Client-Secret": CF_CLIENT_SECRET
+        }
+    )
+
     if leads_res.status_code != 200: return print("❌ API Error (Leads)")
     leads = leads_res.json()
 
-    if not leads or not parcels: return print("⚠️ Missing data. Exiting.")
+    if not leads or not parcels:
+        print("\n🔍 SYSTEM DIAGNOSTICS:")
+        print(f"🌍 Target API: {API_URL}")
+        print(f"📦 Parcels Payload: {parcels if not isinstance(parcels, list) else f'{len(parcels)} records'}")
+        print(f"🎯 Leads Payload: {leads if not isinstance(leads, list) else f'{len(leads)} records'}")
+        return print("\n⚠️ Missing data. Exiting.")
 
     for broker in leads:
+       status = broker.get('status', 'New').lower()
+        if status in ['dead', 'replied']:
+            continue
+            
         contact_name = broker.get('contact_name', 'Broker').split(' ')[0]
         company = broker.get('company_name', 'your firm')
         email = broker.get('email')
@@ -85,14 +103,15 @@ def run_outbound_campaign():
             continue
 
         # We have matches! Build ONE digest email.
-        subject = f"[{len(matched_parcels)} New Targets] Off-Market Activity in Torrance"
+        subject = f"[{len(matched_parcels)} Targets] Pre-Market Zoning Activity in Torrance"
         
         html_body = f"""
         <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; max-width: 600px;">
             <p>Hi {contact_name},</p>
-            <p>My tracking systems intercepted <strong>{len(matched_parcels)} new municipal filings</strong> in the last 90 days that fit {company}'s acquisition profile.</p>
-        """
-        
+            <p>Knowing that <strong>{company}</strong> tracks high-value commercial opportunities across the South Bay market, I wanted to put this on your radar.</p>
+            <p>My systems just intercepted <strong>{len(matched_parcels)} new municipal filings</strong> in Torrance that specifically match your asset class focus.</p>
+        """                 
+
         for p in matched_parcels:
             html_body += f"""
             <div style="background-color: #f8fafc; border-left: 4px solid #1E3A8A; padding: 16px; margin: 20px 0;">
